@@ -20,7 +20,7 @@ restart vim if any issues are encountered.
  Although this seems to already be the case with `:PlugUpdate`.)
 
 Missing plugins are *not* currently handled.
-See [the vim-plug extras page][https://github.com/junegunn/vim-plug/wiki/extra#automatically-install-missing-plugins-on-startup]
+See [the vim-plug extras page](https://github.com/junegunn/vim-plug/wiki/extra#automatically-install-missing-plugins-on-startup)
 for a way to automatically install missing plugins.
 Note that the above vimscript blocks the editor while installing the missing
 plugins for the first time.
@@ -28,5 +28,5 @@ This seems like a reasonable thing to do for missing plugins.
 
 ## SEE ALSO
 
-- [denops][https://github.com/vim-denops/denops.vim]
-- [vim-plug][https://github.com/junegunn/vim-plug]
+- [denops](https://github.com/vim-denops/denops.vim)
+- [vim-plug](https://github.com/junegunn/vim-plug)
