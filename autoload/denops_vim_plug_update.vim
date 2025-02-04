@@ -35,7 +35,7 @@ function denops_vim_plug_update#init() abort
                 let g:denops_vim_plug_update#post_update_hooks[plugin] = l:plugs[plugin]['do']
                 " TODO: vim-plug also allows functions that take a dictionary
                 " argument (https://github.com/junegunn/vim-plug/tree/a7d4a73dd682f0c192b3003efcf86e0dab41602c?tab=readme-ov-file#post-update-hooks)
-                let l:plugs[plugin]['do'] = ':call denops_vim_plug_update#post_update_hooks[' .. plugin .. ']()'
+                let l:plugs[plugin]['do'] = ":call g:denops_vim_plug_update#post_update_hooks['" .. plugin .. "']()"
             else
                 echoerr "[denops-vim-plug-update] vim-plug 'do' post-update hook for '" .. plugin .. "' is neither a string nor a funcref"
                 call remove(l:plugs[plugin], 'do')

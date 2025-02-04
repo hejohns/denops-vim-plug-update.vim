@@ -4,7 +4,8 @@ import * as batch from "jsr:@denops/std/batch";
 import * as fn from "jsr:@denops/std/function";
 import * as vars from "jsr:@denops/std/variable";
 import * as helper from "jsr:@denops/std/helper";
-import { assert, is } from "jsr:@core/unknownutil";
+import { assert, ensure, is } from "jsr:@core/unknownutil";
+import { delay } from "jsr:@std/async";
 
 function _system_Command(cmd : string[], opt : Deno.CommandOptions) : Deno.Command {
     std.assert(cmd.length > 0);
@@ -41,6 +42,9 @@ async function system2(cmd : string[], opt? : Deno.CommandOptions) : Promise<Com
 export const main: Entrypoint = async (denops : Denops) => {
     denops.dispatcher = {
         async PlugUpdate(plugs){
+            // buffer messages back to the user so we can echo them one at a time
+            let user_messages : string[] = [];
+
             assert(plugs, is.String);
             const plugs_obj = JSON.parse(plugs);
             const plugins_updated = await Promise.all(Object.keys(plugs_obj).map(async (plugin) => {
@@ -56,20 +60,28 @@ export const main: Entrypoint = async (denops : Denops) => {
                         if("do" in info){
                             assert(info["do"], is.String);
                             if(info["do"].charAt(0) == ":"){ // execute vimscript, as in vim-plug
-                                await fn.execute(denops, info["do"]);
+                                const result = await fn.execute(denops, info["do"]);
+                                // why does result have a leading newline??
+                                user_messages.push(`[denops-vim-plug-update] Executing vimscript 'do' hook for plugin '${plugin}' returned: ${result.trim()}`);
                             }
-                            else{ // execute system command?
-                                helper.echoerr(denops, `[denops-vim-plug-update] TODO: 'do' system comand for '${plugin}'`);
+                            else{ // execute system command
+                                const cmd = info["do"].split(/\s+/);
+                                const { stdout } = await system(cmd, {cwd: ensure(info["dir"], is.String)});
+                                user_messages.push(`[denops-vim-plug-update] Executing system 'do' hook for plugin '${plugin}' returned: ${stdout}`);
                             }
                         }
                         return true;
                     }
                     else{
-                        helper.echoerr(denops, `[denops-vim-plug-update] git pull '${info["dir"]}' failed: ${git_pull.stderr}`);
+                        await helper.echoerr(denops, `[denops-vim-plug-update] git pull '${info["dir"]}' failed: ${git_pull.stderr}`);
                     }
                 }
                 return false;
             }));
+            for(const msg of user_messages){
+                await helper.echo(denops, msg);
+                await delay(5000); // give the user a chance to read the message
+            }
             return plugins_updated.filter(x => x).length
         },
     };
