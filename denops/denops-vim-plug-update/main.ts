@@ -51,12 +51,21 @@ export const main: Entrypoint = async (denops : Denops) => {
                 std.assert(git_status.success);
                 const re = /behind \d+]/;
                 if(re.test(git_status.stdout)){
-                    const git_pull = await system2(["git", "pull"], {cwd: info['dir']});
+                    const git_pull = await system2(["git", "pull"], {cwd: info["dir"]});
                     if(git_pull.success){
+                        if("do" in info){
+                            assert(info["do"], is.String);
+                            if(info["do"].charAt(0) == ":"){ // execute vimscript, as in vim-plug
+                                await fn.execute(denops, info["do"]);
+                            }
+                            else{ // execute system command?
+                                helper.echoerr(denops, `[denops-vim-plug-update] TODO: 'do' system comand for '${plugin}'`);
+                            }
+                        }
                         return true;
                     }
                     else{
-                        helper.echoerr(denops, `[denops-vim-plug-update][error] git pull '${info['dir']}' failed: ${git_pull.stderr}`);
+                        helper.echoerr(denops, `[denops-vim-plug-update] git pull '${info["dir"]}' failed: ${git_pull.stderr}`);
                     }
                 }
                 return false;
