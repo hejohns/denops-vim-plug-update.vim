@@ -8,8 +8,10 @@ function s:PlugUpdate_success(v) abort
 endfunction
 
 function s:PlugUpdate_failure(e) abort
-    echoerr "[denops-vim-plug-update] plugin update failed for some reason. See echoerr log, and try `call denops_vim_plug_update#init()` again"
-    call hejohns#PlugUpdate()
+    5echowindow "[denops-vim-plug-update] `denops_vim_plug_update#init()` failed: " .. a:e['message']
+    if exists('g:denops_vim_plug_update_error_callback')
+        call function(g:denops_vim_plug_update_error_callback)()
+    endif
 endfunction
 
 function denops_vim_plug_update#init() abort

@@ -49,34 +49,37 @@ export const main: Entrypoint = async (denops : Denops) => {
             const plugs_obj = JSON.parse(plugs);
             const plugins_updated = await Promise.all(Object.keys(plugs_obj).map(async (plugin) => {
                 const info = plugs_obj[plugin];
-                const git_fetch = await system(["git", "fetch", "--all"], {cwd: info['dir']});
-                std.assert(git_fetch.success);
-                const git_status = await system(["git", "status", "--porcelain", "-bz"], {cwd: info['dir']});
+                const git_fetch = await system2(["git", "fetch", "--all"], {cwd: info['dir']});
+                if(!git_fetch.success){
+                    throw new Error(`[denops-vim-plug-update] git fetch --all '${info["dir"]}' failed: ${git_fetch.stderr}`);
+                }
+                const git_status = await system2(["git", "status", "--porcelain", "-bz"], {cwd: info['dir']});
                 std.assert(git_status.success);
+                if(!git_status.success){
+                    throw new Error(`[denops-vim-plug-update] git status --porcelain -bz '${info["dir"]}' failed: ${git_status.stderr}`);
+                }
                 const re = /behind \d+]/;
-                if(re.test(git_status.stdout)){
-                    const git_pull = await system2(["git", "pull"], {cwd: info["dir"]});
-                    if(git_pull.success){
-                        if("do" in info){
-                            assert(info["do"], is.String);
-                            if(info["do"].charAt(0) == ":"){ // execute vimscript, as in vim-plug
-                                const result = await fn.execute(denops, info["do"]);
-                                // why does result have a leading newline??
-                                user_messages.push(`[denops-vim-plug-update] Executing vimscript 'do' hook for plugin '${plugin}' returned: ${result.trim()}`);
-                            }
-                            else{ // execute system command
-                                const cmd = info["do"].split(/\s+/);
-                                const { stdout } = await system(cmd, {cwd: ensure(info["dir"], is.String)});
-                                user_messages.push(`[denops-vim-plug-update] Executing system 'do' hook for plugin '${plugin}' returned: ${stdout}`);
-                            }
-                        }
-                        return true;
+                if(!re.test(git_status.stdout)){
+                    return false;
+                }
+                const git_pull = await system2(["git", "pull"], {cwd: info["dir"]});
+                if(!git_pull.success){
+                    throw new Error(`[denops-vim-plug-update] git pull '${info["dir"]}' failed: ${git_pull.stderr}`);
+                }
+                if("do" in info){
+                    assert(info["do"], is.String);
+                    if(info["do"].charAt(0) == ":"){ // execute vimscript, as in vim-plug
+                        const result = await fn.execute(denops, info["do"]);
+                        // why does result have a leading newline??
+                        user_messages.push(`[denops-vim-plug-update] Executing vimscript 'do' hook for plugin '${plugin}' returned: ${result.trim()}`);
                     }
-                    else{
-                        await helper.echoerr(denops, `[denops-vim-plug-update] git pull '${info["dir"]}' failed: ${git_pull.stderr}`);
+                    else{ // execute system command
+                        const cmd = info["do"].split(/\s+/);
+                        const { stdout } = await system(cmd, {cwd: ensure(info["dir"], is.String)});
+                        user_messages.push(`[denops-vim-plug-update] Executing system 'do' hook for plugin '${plugin}' returned: ${stdout}`);
                     }
                 }
-                return false;
+                return true;
             }));
             for(const msg of user_messages){
                 await helper.echo(denops, msg);
